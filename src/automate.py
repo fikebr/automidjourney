@@ -2,12 +2,12 @@ import sqlite3
 import pyautogui
 import time
 import os
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'config'))
 import config
 import random
 import logging
-from log import setup_logging
-
-setup_logging()
 
 pyautogui.FailSafeException = True
 

@@ -10,7 +10,7 @@ DB_NAME = "automidjourney.db"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 CREDENTIALS_FILE = "credentials.json"
 TOKEN_FILE = "token.json"
-KEY_FILE = "key.json"
+KEY_FILE = "config/key.json"
 
 # Table configurations
 TABLE_CONFIGS = {
@@ -44,12 +44,21 @@ TABLE_CONFIGS = {
         "columns": ["tablename", "rating", "count"],
         "int_columns": ["rating", "count"],
     },
+    "usage": {
+        "sheet_name": "usage",
+        "table_name": "usage",
+        "columns": ["item_id", "table_name", "timestamp"],
+        "int_columns": ["item_id"],
+    },
 }
 
 prompt_prefix = ""
 prompt_suffix = ""
 
-promptbar_image = "promptbar.png"
+promptbar_image = "config/promptbar.png"
 automate_sleep = 50
 
 save_prompts_to_txt = False
+
+# Prompt file configuration
+PROMPT_FILE_NAME = "E:/fooocus/wildcards/rand100.txt"

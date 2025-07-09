@@ -2,7 +2,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-LOG_FORMAT = "%(asctime)s %(levelname)s %(lineno)d - %(message)s"  # %(filename)s
+LOG_FORMAT = "%(asctime)s %(levelname)s %(filename)s %(lineno)d - %(message)s"  # %(filename)s
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 LOG_FILE = "logs/app.log"
 LOG_FILE_MAX_SIZE = 10 * 1024 * 1024  # 10 MB

@@ -1,20 +1,20 @@
 import sqlite3
 import datetime
 import pprint
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'config'))
 import config
 import re
 import logging
-from log import setup_logging
-
-setup_logging()
 
 
-def combine_subjects(subjects, styles):
+def combine_subjects(subjects, styles, subject_ids, style_ids):
     """Combines subjects and styles to create prompts."""
     prompts = []
-    for subject in subjects:
-        for style in styles:
-            prompt = f"{subject} | in the style of {style}"
+    for i, subject in enumerate(subjects):
+        for j, style in enumerate(styles):
+            prompt = f"{subject} | in the style of {style} u{subject_ids[i]}-y{style_ids[j]}"
             prompts.append(prompt)
     return prompts
 
@@ -22,31 +22,43 @@ def combine_subjects(subjects, styles):
 def get_styles(db, control):
     """Retrieves styles from the database based on control."""
     styles = []
+    style_ids = []
+    name = "style"
     for rating, count in control["styles"].items():
-        sql = f"SELECT style FROM styles WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"SELECT style_id, style FROM styles WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
-        styles.extend([row[0] for row in rows])
-    return styles
+        styles.extend([row[1] for row in rows])
+        style_ids.extend([row[0] for row in rows])
+    return styles, style_ids
 
 
 def get_prompts(db, control):
     """Retrieves prompts from the database based on control."""
     prompts = []
+    prompt_ids = []
+    name = "prompt"
     for rating, count in control["prompts"].items():
-        sql = f"SELECT prompt FROM prompts WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"SELECT prompt_id, prompt FROM prompts WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
-        prompts.extend([row[0] for row in rows])
-    return prompts
+        prompts.extend([row[1] for row in rows])
+        prompt_ids.extend([row[0] for row in rows])
+    return prompts, prompt_ids
 
 
 def get_subjects(db, control):
     """Retrieves subjects from the database based on control."""
     subjects = []
+    subject_ids = []
+    name = "subject"
     for rating, count in control["subjects"].items():
-        sql = f"SELECT subject FROM subjects WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"SELECT subject_id, subject FROM subjects WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
-        subjects.extend([row[0] for row in rows])
-    return subjects
+        subjects.extend([row[1] for row in rows])
+        subject_ids.extend([row[0] for row in rows])
+    return subjects, subject_ids
 
 
 def get_control(db):
@@ -103,6 +115,7 @@ def save_prompts(db, prompts):
 
 
     data = [(prompt,) for prompt in prompts]
+    # pprint.pprint(data)
 
     try:
         cursor.executemany(
@@ -122,6 +135,32 @@ def save_to_text(prompts):
         for prompt in prompts:
             f.write(f"{prompt}\n")
 
+def save_usage(db, style_ids, prompt_ids, subject_ids):
+    table_name = "usage"
+    cursor = db.cursor()
+    columns = "item_id, table_name, timestamp"
+    placeholders = "?, ?, ?"
+
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    data_subjects = [(subject_id, 'subjects', timestamp,) for subject_id in subject_ids]
+    data_styles = [(style_id, 'styles', timestamp,) for style_id in style_ids]
+    data_prompts = [(prompt_id, 'prompts', timestamp,) for prompt_id in prompt_ids]
+
+    data = data_subjects + data_styles + data_prompts
+    # pprint.pprint(data)
+
+    try:
+        for entry in data:
+            # pprint.pprint(entry)
+            cursor.execute(
+                f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})",
+                entry,
+            )
+            db.commit()
+    except sqlite3.Error as e:
+        logging.error(f"An error occurred while inserting data into {table_name}: {e}")
+    
 
 def run():
     prefix = config.prompt_prefix
@@ -132,12 +171,15 @@ def run():
     try:
         db = sqlite3.connect(config.DB_NAME)
         control = get_control(db)
-        subjects = get_subjects(db, control)
-        # pprint.pprint(subjects)
-        styles = get_styles(db, control)
-        prompts = get_prompts(db, control)
 
-        prompts.extend(combine_subjects(subjects, styles))
+        subjects, subject_ids = get_subjects(db, control)
+        styles, style_ids = get_styles(db, control)
+        prompts, prompt_ids = get_prompts(db, control)
+        
+        # Add prompt IDs to each prompt string
+        prompts = [f"{prompt} p{prompt_ids[i]}" for i, prompt in enumerate(prompts)]
+
+        prompts.extend(combine_subjects(subjects, styles, subject_ids, style_ids))
 
         if prefix:
             prompts = [f"{prefix} {x}" for x in prompts]
@@ -151,7 +193,7 @@ def run():
 
         clear_prompt_temp(db)
         save_prompts(db, prompts)
-
+        save_usage(db, style_ids, prompt_ids, subject_ids)
         if config.save_prompts_to_txt:
             save_to_text(prompts)
 

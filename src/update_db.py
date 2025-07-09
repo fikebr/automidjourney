@@ -2,11 +2,11 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import sqlite3
 
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'config'))
 import config
 import logging
-from log import setup_logging
-
-setup_logging()
 
 def convert_types(row, table_config):
     try:
