@@ -44,12 +44,12 @@ TABLE_CONFIGS = {
         "columns": ["tablename", "rating", "count"],
         "int_columns": ["rating", "count"],
     },
-    "usage": {
-        "sheet_name": "usage",
-        "table_name": "usage",
-        "columns": ["item_id", "table_name", "timestamp"],
-        "int_columns": ["item_id"],
-    },
+    # "usage": {
+    #     "sheet_name": "usage",
+    #     "table_name": "usage",
+    #     "columns": ["item_id", "table_name", "timestamp"],
+    #     "int_columns": ["item_id"],
+    # },
 }
 
 prompt_prefix = ""

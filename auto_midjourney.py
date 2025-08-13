@@ -17,59 +17,58 @@ def main():
 def cli():
     parser = argparse.ArgumentParser(
         description="Auto Midjourney CLI - A comprehensive tool for automating Midjourney image generation workflows",
-        epilog="This tool provides various commands to manage prompts, update databases, and automate Midjourney processes."
+        epilog="\n\n"
     )
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
-    # Update database command
-    update_parser = subparsers.add_parser(
-        "update_db", 
+    # Add command flags for multiple command execution
+    parser.add_argument(
+        "--update_db", 
+        action="store_true",
         help="Update SQLite database from Google Sheets"
     )
-    update_parser.description = "Fetches data from Google Sheets and updates the local SQLite database with the latest information."
-    
-    # Get prompts command
-    prompts_parser = subparsers.add_parser(
-        "get_prompts", 
+    parser.add_argument(
+        "--get_prompts", 
+        action="store_true",
         help="Retrieve prompts from the database"
     )
-    prompts_parser.description = "Retrieves and processes prompts from the local database for use in automation."
-    
-    # Automate command
-    automate_parser = subparsers.add_parser(
-        "automate", 
+    parser.add_argument(
+        "--automate", 
+        action="store_true",
         help="Run the Midjourney automation"
     )
-    automate_parser.description = "Executes the main automation workflow for Midjourney image generation."
-    
-    # Prompt file command
-    prompt_file_parser = subparsers.add_parser(
-        "prompt_file", 
+    parser.add_argument(
+        "--prompt_file", 
+        action="store_true",
         help="Generate a file with random prompts"
     )
-    prompt_file_parser.description = "Queries the prompt_tmp table for 100 random prompts and writes them to a file."
-
-    # All command
-    all_parser = subparsers.add_parser(
-        "all", 
-        help="Run all commands in sequence"
+    parser.add_argument(
+        "--count", 
+        type=int,
+        default=100,
+        help="Number of prompts to write to file (default: 100)"
     )
-    all_parser.description = "Executes update_db, get_prompts, and automate in sequence (original behavior)."
-    
     
     args = parser.parse_args()
     
-    if args.command == "update_db":
-        update_db.run()
-    elif args.command == "get_prompts":
-        get_prompts.run()
-    elif args.command == "automate":
-        automate.run()
-    elif args.command == "all":
-        main()
-    elif args.command == "prompt_file":
-        prompt_file.run()
+    # Check if any flags are provided
+    flags_provided = any([args.update_db, args.get_prompts, args.automate, args.prompt_file])
+    
+    if flags_provided:
+        # Execute commands based on flags
+        if args.update_db:
+            print("Running: update_db")
+            update_db.run()
+        if args.get_prompts:
+            print("Running: get_prompts")
+            get_prompts.run()
+        if args.automate:
+            print("Running: automate")
+            automate.run()
+        if args.prompt_file:
+            print("Running: prompt_file")
+            prompt_file.run(args.count)
     else:
+        # No flags provided, show help
         parser.print_help()
 
 

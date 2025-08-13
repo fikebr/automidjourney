@@ -8,6 +8,10 @@ import config
 import re
 import logging
 
+# TODO: make this a config option
+usage_to_query = 0
+usage_amount_to_get = 10
+
 
 def combine_subjects(subjects, styles, subject_ids, style_ids):
     """Combines subjects and styles to create prompts."""
@@ -24,12 +28,22 @@ def get_styles(db, control):
     styles = []
     style_ids = []
     name = "style"
+    
+    # Get styles based on rating from the database
     for rating, count in control["styles"].items():
-        sql = f"SELECT style_id, style FROM styles WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT style_id, style FROM styles WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"select {name}_id, {name} from {name}_usage where rating = {rating} limit {count};"
         # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
         styles.extend([row[1] for row in rows])
         style_ids.extend([row[0] for row in rows])
+        
+    # Get styles based on usage_to_query
+    sql = f"select {name}_id, {name} from {name}_usage where usage_count = {usage_to_query} order by usage_count desc limit {usage_amount_to_get};"
+    rows = db.execute(sql).fetchall()
+    styles.extend([row[1] for row in rows])
+    style_ids.extend([row[0] for row in rows])
+    
     return styles, style_ids
 
 
@@ -38,12 +52,22 @@ def get_prompts(db, control):
     prompts = []
     prompt_ids = []
     name = "prompt"
+    
+    # Get prompts based on rating from the database
     for rating, count in control["prompts"].items():
-        sql = f"SELECT prompt_id, prompt FROM prompts WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT prompt_id, prompt FROM prompts WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"select {name}_id, {name} from {name}_usage where rating = {rating} limit {count};"
         # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
         prompts.extend([row[1] for row in rows])
         prompt_ids.extend([row[0] for row in rows])
+        
+    # Get prompts based on usage_to_query
+    sql = f"select {name}_id, {name} from {name}_usage where usage_count = {usage_to_query} order by usage_count desc limit {usage_amount_to_get};"
+    rows = db.execute(sql).fetchall()
+    prompts.extend([row[1] for row in rows])
+    prompt_ids.extend([row[0] for row in rows])
+    
     return prompts, prompt_ids
 
 
@@ -52,12 +76,22 @@ def get_subjects(db, control):
     subjects = []
     subject_ids = []
     name = "subject"
+    
+    # Get subjects based on rating from the database
     for rating, count in control["subjects"].items():
-        sql = f"SELECT subject_id, subject FROM subjects WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        # sql = f"SELECT subject_id, subject FROM subjects WHERE rating = {rating} AND status = 'open' ORDER BY RANDOM() LIMIT {count};"
+        sql = f"select {name}_id, {name} from {name}_usage where rating = {rating} limit {count};"
         # sql = f"SELECT p.{name}_id, p.{name}, COUNT(u.item_id) AS usage_count FROM {name}s p LEFT JOIN usage u ON p.{name}_id = u.item_id WHERE p.status = 'open' and p.rating = {rating} and u.table_name = '{name}s' GROUP BY p.{name} ORDER BY usage_count ASC, RANDOM() LIMIT {count};"
         rows = db.execute(sql).fetchall()
         subjects.extend([row[1] for row in rows])
         subject_ids.extend([row[0] for row in rows])
+        
+    # Get subjects based on usage_to_query
+    sql = f"select {name}_id, {name} from {name}_usage where usage_count = {usage_to_query} order by usage_count desc limit {usage_amount_to_get};"
+    rows = db.execute(sql).fetchall()
+    subjects.extend([row[1] for row in rows])
+    subject_ids.extend([row[0] for row in rows])
+
     return subjects, subject_ids
 
 
@@ -193,7 +227,7 @@ def run():
 
         clear_prompt_temp(db)
         save_prompts(db, prompts)
-        save_usage(db, style_ids, prompt_ids, subject_ids)
+        #save_usage(db, style_ids, prompt_ids, subject_ids)
         if config.save_prompts_to_txt:
             save_to_text(prompts)
 
